@@ -1,233 +1,242 @@
-<img width="960" height="540" alt="Project Proposal Presentation (1)" src="https://github.com/user-attachments/assets/86f06080-31b9-48c9-91ee-86cfbc461ef9" />
+<img width="960" height="540" alt="Help Desk Ticket Lab" src="https://github.com/user-attachments/assets/86f06080-31b9-48c9-91ee-86cfbc461ef9" />
 
-Comprehensive network security operations project demonstrating SOC/NOC skills through 6 real-world scenarios: DNS attack investigation, network forensics, infrastructure troubleshooting, incident response, firewall management, and security scanning. Features hands-on experience with Wireshark, pfSense, DNS management, and vulnerability assessment.
+# Help Desk Ticket Lab
 
-## Industry Relevance
+Six help desk tickets worked end to end in a virtualized enterprise environment. Each ticket documents the reported problem, the tools chosen and why, the troubleshooting steps taken, the root cause, and the verified resolution.
 
-This project simulates real-world scenarios encountered daily in enterprise security operations centers. Each incident represents authentic challenges faced by SOC analysts, NOC engineers, and IT support specialists, demonstrating practical skills directly applicable to cybersecurity careers.
+## Environment
 
-The systematic approach to threat detection, investigation, and remediation showcases the critical thinking and technical expertise required for effective security operations in enterprise environments.
+- **Servers:** Windows Server 2019 (DNS / domain controller), Ubuntu Linux servers
+- **Endpoints:** Windows 10 workstations
+- **Network:** pfSense firewall, VyOS routers, DMZ architecture
+- **Tools:** DNS Manager, Wireshark, nmap, pfTop, VyOS CLI, PuTTY, TightVNC, Windows Network Diagnostics, ipconfig, ping, traceroute/tracert, nslookup, netstat/ss
 
-## Learning Outcomes
+## Tickets
 
-- **Incident Response:** Proven ability to detect, investigate, and remediate security incidents
-- **Network Security:** Deep understanding of enterprise network security architectures  
-- **Forensic Analysis:** Practical experience with digital forensics and evidence handling
-- **Infrastructure Management:** Hands-on experience with critical network infrastructure
-- **Compliance Operations:** Knowledge of security auditing and regulatory requirements
-
-**Key Capabilities Demonstrated:**
-- Security incident detection and response
-- Network forensics and threat hunting  
-- Infrastructure troubleshooting and restoration
-- Firewall management and access control
-- Vulnerability assessment and compliance scanning
-- Digital forensics and evidence preservation
-
-## Languages and Utilities Used
-
-- **Network Security:** pfSense Firewall, DNS Manager, Wireshark Protocol Analyzer
-- **System Administration:** PowerShell, Windows Command Line (ipconfig, ping, traceroute, nslookup)
-- **Infrastructure Management:** VyOS CLI, OSPF Configuration, NAT/Routing
-- **Security Tools:** Nmap Port Scanner, Network Vulnerability Assessment
-- **Remote Administration:** TightVNC Viewer, SSH, Remote Desktop
-
-## Environments Used
-
-- **Enterprise Infrastructure:** Windows Server 2019 (DNS/Domain Controller)
-- **Network Security:** pfSense Firewall, VyOS Routers, DMZ Architecture  
-- **Endpoint Systems:** Windows 10 Workstations, Ubuntu Linux Servers
-- **Security Lab:** InfoSec Assessment Environment, Virtualized Network
-
-## Help Desk Ticket 1: DNS Redirection Issue
-
-**Scenario**:
-```
-There are multiple reports of employees located in the USER_Net subnet who cannot get to www.wgu.edu, 
-and the issue appears to be affecting the entire organization. They are being redirected to a suspicious site. 
-A help desk technician states that the server team recently installed updates to DMZ_Server_3, which acts as 
-the DNS server for the organization. The resolution must be organization-wide.
-```
-
-**Troubleshooting Process**
-
-1. Verified the issue by attempting to access www.wgu.edu, which resulted in a "Server Not Found" error<img width="462" height="278" alt="image" src="https://github.com/user-attachments/assets/aaa3909f-c4a2-49f8-9bdd-5850229fa022" />
-
-2. Accessed the DNS server on DMZ_Server_3 using TightVNC Viewer to examine its configuration<img width="468" height="309" alt="image" src="https://github.com/user-attachments/assets/3091b983-61e9-40ca-9b88-f70b230ac3a5" />
-
-3. In DNS Manager, examined the forward lookup zone for wgu.edu and discovered both the root domain (wgu.edu) and the www subdomain were configured with Host (A) records pointing to 10.10.20.2
-4. This incorrect IP address (10.10.20.2) explained why users were being redirected to a suspicious site - the DNS server was resolving wgu.edu to an IP address that hosted potentially malicious content
-5. To resolve the issue, deleted the entire forward lookup zone for wgu.edu<img width="468" height="308" alt="image" src="https://github.com/user-attachments/assets/d1b720f3-c65d-4686-a0e1-57155d672a56" />
-
-6. After deletion, verified that users would now resolve wgu.edu via the organization's upstream DNS providers, which have the correct records
-7. Verified the resolution by testing access to www.wgu.edu, which now successfully loaded the WGU website <img width="468" height="355" alt="image" src="https://github.com/user-attachments/assets/fb6e7b3f-7ae2-4271-abc2-6a788ff668d6" />
-
-8. Since DNS changes propagate throughout the organization automatically, this resolution is organization-wide as required
-
-**Skills Demonstrated**:
-- **Threat Detection:** Identified malicious DNS redirection affecting enterprise domain resolution
-- **Digital Forensics:** Used DNS Manager to examine compromised zone configurations on critical infrastructure
-- **Root Cause Analysis:** Discovered attacker-placed A records pointing wgu.edu to 10.10.20.2 (IOC)
-- **Incident Containment:** Implemented emergency DNS zone deletion to restore legitimate resolution
-- **Impact Assessment:** Verified organization-wide restoration of legitimate web access
-
-**Tools Used**: DNS Manager, TightVNC, Network Connectivity Testing  
+| # | Issue | Root cause |
+|---|---|---|
+| 1 | Users redirected to an unexpected site | Incorrect DNS A records |
+| 2 | Unauthorized FTP service on the network | Anonymous FTP server in the DMZ |
+| 3 | Linux server cannot reach any network | Routing loop from a bad default route |
+| 4 | Workstation has no network access | DHCP failure causing APIPA fallback |
+| 5 | DMZ server unreachable after a firewall change | Overly broad block rule |
+| 6 | Services running outside the approved baseline | 10 unauthorized listening ports |
 
 ---
 
-## Help Desk Ticket 2: Illegal FTP Site Investigation
+## Ticket 1: DNS Redirection
 
-**Scenario**:
+**Reported**
 ```
-A complaint came in that a certain organization is hosting an illegal FTP site to download copyrighted 
-software. The security team has provided a pcap file capturing all FTP traffic on the network. They have 
-asked you to identify where the FTP site is being hosted.
+Multiple employees in the USER_Net subnet cannot reach www.wgu.edu and are being redirected to a
+suspicious site. The issue affects the entire organization. The server team recently installed
+updates to DMZ_Server_3, which acts as the DNS server. The resolution must be organization-wide.
 ```
 
-**Troubleshooting Process**:
-1. Opened the provided pcap file in Wireshark
-2. Applied the display filter "ftp or ftp-data" to isolate only FTP-related traffic
-3. Examined the filtered packets to identify FTP server communications
-4. Found evidence of an FTP server at IP address 10.10.20.2 advertising itself as a "warez FTP service"<img width="468" height="235" alt="image" src="https://github.com/user-attachments/assets/c406599f-8f75-4a7c-94b5-983ec1c34f26" />
+**Tools used:** DNS Manager, TightVNC, web browser, connectivity testing
 
-5. Observed successful anonymous login to the server
-6. Identified navigation to common warez directories including "pub"
-7. Found directory listing commands and evidence of file sharing activity
-8. Confirmed the FTP server was explicitly labeled as providing "warez" content
+**Why these tools:** The symptom was name resolution, so DNS Manager gave direct access to the zone records. TightVNC was needed to reach the DNS server console remotely. The browser confirmed the redirect and verified the fix.
 
-**Skills Demonstrated**:
-- **Network Forensics:** Analyzed PCAP files using Wireshark to identify unauthorized FTP activity
-- **Protocol Analysis:** Applied advanced filtering ("ftp or ftp-data") to isolate malicious communications
-- **Threat Intelligence:** Identified IOCs including FTP server at 10.10.30.2 hosting "warez" content
-- **Evidence Collection:** Documented file transfer patterns, anonymous access, and directory structures
-- **Compliance Reporting:** Prepared detailed findings for legal and regulatory requirements
+**Troubleshooting process**
 
-**Tools Used**: Wireshark, Network Protocol Analysis
+1. Reproduced the issue and got a "Server Not Found" error<img width="462" height="278" alt="image" src="https://github.com/user-attachments/assets/aaa3909f-c4a2-49f8-9bdd-5850229fa022" />
+
+2. Connected to DMZ_Server_3 over TightVNC to inspect its DNS configuration<img width="468" height="309" alt="image" src="https://github.com/user-attachments/assets/3091b983-61e9-40ca-9b88-f70b230ac3a5" />
+
+3. In DNS Manager, opened the forward lookup zone for wgu.edu and found Host (A) records for both the root domain and the www subdomain pointing to 10.10.20.2
+4. That address does not host the site, which explained the redirect
+5. Removed the incorrect zone so the organization would resolve through its upstream DNS providers, which hold the correct records<img width="468" height="308" alt="image" src="https://github.com/user-attachments/assets/d1b720f3-c65d-4686-a0e1-57155d672a56" />
+
+6. Verified the site loaded correctly from the workstation<img width="468" height="355" alt="image" src="https://github.com/user-attachments/assets/fb6e7b3f-7ae2-4271-abc2-6a788ff668d6" />
+
+7. Because DNS changes propagate automatically, the fix applied organization-wide as required
+
+**Root cause:** Incorrect Host (A) records in the wgu.edu forward lookup zone, introduced during the recent server work, resolved the domain to 10.10.20.2.
 
 ---
 
-## Help Desk Ticket 3: Ubuntu Server Connectivity Issue
+## Ticket 2: Unauthorized FTP Service
 
-**Scenario**:
+**Reported**
 ```
-The host "Ubuntu_Server" cannot get to any of the assigned networks or the internet, which is preventing 
-the server from pulling the required security patches. The resolution must be organization-wide.
+A complaint came in that the organization is hosting an illegal FTP site to download copyrighted
+software. The security team provided a pcap file capturing all FTP traffic on the network and
+asked for the host.
 ```
 
-**Troubleshooting Process**:
-1. Used ping from Ubuntu_Server to test connectivity to loopback, local gateway, and internet addresses
-2. Ran traceroute to 8.8.8.8 which revealed a routing loop between Router4 and Router5 <img width="468" height="223" alt="image" src="https://github.com/user-attachments/assets/fe95550d-05cc-41e9-84c2-32a7af78fc48" />
+**Tools used:** Wireshark
 
-3. Accessed Router4 and examined its routing table with the ip route command
-4. Discovered Router4 had an incorrect default route pointing to 10.10.80.1 instead of 10.10.70.254
-5. Identified lack of NAT configuration on Router4 and Router5 for internet traffic
-6. Noted absence of dynamic routing protocols across the network
-7. Implemented NAT masquerade rules on Router4 and Router5
-8. Configured OSPF on all routers to provide dynamic routing across the organization
-9. Verified connectivity with ping and traceroute from Ubuntu_Server to internet addresses
+**Why this tool:** Wireshark is the standard tool for reading packet captures, and its display filters isolate a single protocol out of a large capture.
 
-**Skills Demonstrated**:
-- **Network Diagnostics:** Utilized ping/traceroute to identify routing loops between core infrastructure
-- **Infrastructure Analysis:** Examined routing tables revealing misconfigured default gateway (10.10.80.1 → 10.10.70.254)
-- **Protocol Configuration:** Implemented enterprise-wide OSPF dynamic routing for redundancy
-- **Change Management:** Deployed NAT configurations across multiple edge routers
-- **Service Restoration:** Restored internet connectivity for critical security patch management
+**Troubleshooting process**
 
-**Tools Used**: Network Diagnostic Tools, VyOS CLI, OSPF Configuration, NAT Management  
+1. Opened the provided pcap in Wireshark
+2. Applied the display filter `ftp or ftp-data` to isolate FTP traffic
+3. Followed the server responses to identify FTP communications
+4. Found an FTP server at 10.10.20.2 advertising itself as a warez FTP service<img width="468" height="235" alt="image" src="https://github.com/user-attachments/assets/c406599f-8f75-4a7c-94b5-983ec1c34f26" />
+
+5. Observed a successful anonymous login
+6. Documented navigation to warez directories including `pub`, plus directory listing commands confirming file distribution
+
+**Root cause:** An FTP service running on 10.10.20.2 in the DMZ, accepting anonymous logins and serving unauthorized content.
+
+**Recommendation**
+
+- Block traffic to and from 10.10.20.2 at the firewall
+- Isolate the system for forensic review
+- Determine whether the host was compromised or deliberately configured this way
+- Review access logs to identify who connected
+- Add recurring network scanning to detect unauthorized services
+- Update acceptable use policy to prohibit unapproved file sharing services
 
 ---
 
-## Help Desk Ticket 4: Windows Laptop Network Issue
+## Ticket 3: Linux Server Cannot Reach Any Network
 
-**Scenario**:
+**Reported**
 ```
-A user complains that he cannot access the internet or network resources on his company laptop 
-(Windows_Laptop_1) when it is connected via an ethernet cable to the office network.
+The host "Ubuntu_Server" cannot get to any of the assigned networks or the internet, which is
+preventing the server from pulling required security patches. The resolution must be
+organization-wide.
 ```
 
-**Troubleshooting Process**:
-1. Verified Windows_Laptop_1 was connected but showing "No Internet access"
-2. Ran Windows network troubleshooter, which identified "Ethernet doesn't have a valid IP configuration"
-3. Used ipconfig to check the current IP address, revealing an autoconfiguration IP address (169.254.x.x)
-4. Examined the network diagram to identify the correct IP addressing scheme
-5. Changed IP assignment from automatic (DHCP) to manual and configured static IP settings:
+**Tools used:** `ip`, ping, traceroute, PuTTY, VyOS CLI
+
+**Why these tools:** `ip` shows interface and routing state, ping and traceroute isolate where the path breaks, and PuTTY plus the VyOS CLI gave access to correct the router configuration.
+
+**Troubleshooting process**
+
+1. Confirmed with `ip a` that Ubuntu_Server held a valid address and the interface was up
+2. Pinged loopback (success), the local gateway (success), and 8.8.8.8 (failed with TTL exceeded)
+3. Ran traceroute to 8.8.8.8 and saw packets looping between Router4 and Router5<img width="468" height="223" alt="image" src="https://github.com/user-attachments/assets/fe95550d-05cc-41e9-84c2-32a7af78fc48" />
+
+4. Connected to Router4 and examined its routing table with `ip route`
+5. Found its default route pointing to 10.10.80.1 instead of 10.10.70.254
+6. Noted the absence of NAT on Router4 and Router5, and no dynamic routing protocol anywhere in the environment
+7. Corrected the default route, added NAT masquerade rules on Router4 and Router5, and configured OSPF on all routers so routing would converge dynamically
+8. Verified with ping and traceroute that the server reached external addresses cleanly
+
+**Root cause:** Router4's default route pointed backward instead of forward to Router3, creating a routing loop. With no dynamic routing protocol, there was no path around the error.
+
+**Recommendation:** Beyond the immediate fix, run periodic configuration audits so static route errors are caught before they affect services.
+
+---
+
+## Ticket 4: Workstation Has No Network Access
+
+**Reported**
+```
+A user cannot access the internet or network resources on his company laptop (Windows_Laptop_1)
+when it is connected via ethernet cable to the office network.
+```
+
+**Tools used:** ipconfig, Windows Network Troubleshooter, Network and Sharing Center, network diagram
+
+**Why these tools:** ipconfig shows the live address assignment, the troubleshooter gives a fast first read, and the network diagram provided the correct addressing scheme for the subnet.
+
+**Troubleshooting process**
+
+1. Confirmed the laptop was connected but showing "No Internet access"
+2. Ran the Windows Network Troubleshooter, which reported "Ethernet doesn't have a valid IP configuration"
+3. Ran ipconfig and found an APIPA address (169.254.x.x) rather than an address from the user subnet
+4. Checked the network diagram and a working workstation on the same subnet to confirm the correct scheme
+5. Switched the adapter from DHCP to manual and set:
    - IP address: 10.10.40.4
    - Subnet prefix length: 24
    - Default gateway: 10.10.40.254
    - DNS server: 10.10.20.3
-6. Verified connectivity was restored and configuration was correct
+6. Verified internet and internal resource access were restored
 
-**Skills Demonstrated**:
-- **Desktop Support:** Applied Windows Network Troubleshooter for systematic diagnosis
-- **Network Configuration:** Identified APIPA self-assignment (169.254.x.x) indicating DHCP service failure
-- **Static IP Management:** Configured manual network settings (IP: 10.10.40.4/24, GW: 10.10.40.254, DNS: 10.10.20.3)
-- **User Communication:** Provided clear technical guidance for immediate resolution
-- **Service Verification:** Confirmed full network and internet access restoration
+**Root cause:** The workstation could not obtain a lease from DHCP and fell back to an APIPA address, which provides no connectivity beyond the local link. Possible causes include a DHCP service problem, a firewall blocking DHCP, or an adapter issue.
 
-**Tools Used**: Windows Network Diagnostics, IP Configuration Management, Network Testing  
-**[View Desktop Support Case →](./Ticket-04-Endpoint-Support/)**
+**Recommendation**
+
+- Verify DHCP service health for the user subnet
+- Document the addressing scheme with reserved static ranges
+- Add connectivity monitoring so DHCP failures surface before users report them
 
 ---
 
-## Help Desk Ticket 5: Firewall Access Issue
+## Ticket 5: DMZ Server Unreachable After a Firewall Change
 
-**Scenario**:
+**Reported**
 ```
-A coworker states that she worked on a ticket to allow access through the firewall to DMZ_Server_1. 
-There is now no access to the server from any device outside its network.
+A coworker states that she worked on a ticket to allow access through the firewall to
+DMZ_Server_1. There is now no access to the server from any device outside its network.
 ```
 
-**Troubleshooting Process**:
+**Tools used:** ping, nslookup, tracert, pfTop, pfSense shell, pfSense web interface
+
+**Why these tools:** ping and tracert establish whether and where the path breaks. nslookup resolved the hostname. pfTop showed live connections through the firewall. Shell access exposed the active ruleset, and the web interface made the change safe and reviewable.
+
+**Troubleshooting process**
+
 1. Attempted to ping DMZ_Server_1 and received "Request timed out"
-2. Ran tracert to determine where the connection was failing (after hop 4)
-3. Accessed the firewall console and used pfTop to examine connections
-4. Identified a blocking rule: "block return out quick on em2 inet from any to 10.10.20.1"
-5. Accessed the firewall web interface, confirmed and deleted the blocking rule
+2. Ran tracert and found traffic reaching the firewall and stopping after hop 4
+3. Opened the firewall console and used pfTop to examine current connections
+4. Read the active ruleset and found `block return out quick on em2 inet from any to 10.10.20.1` — a block against the DMZ gateway carrying the `quick` keyword, which stops evaluation before any later allow rules
+5. Confirmed the rule in the web interface and deleted it
 6. Verified connectivity to DMZ_Server_1 was restored
 
-**Skills Demonstrated**:
-- **Firewall Management:** Used pfSense CLI and web interface for rule analysis and modification
-- **Traffic Analysis:** Employed pfTop for real-time connection monitoring and troubleshooting
-- **Access Control Auditing:** Identified overly restrictive rule blocking legitimate DMZ communications
-- **Security Rule Management:** Safely removed blocking rule "block return out quick on em2 inet from any to 10.10.20.1"
-- **Change Documentation:** Maintained detailed audit trail for security compliance requirements
-
-**Tools Used**: pfSense Firewall, pfTop Traffic Analysis, Access Control Management  
-**[View Firewall Analysis →](./Ticket-05-Firewall-Management/)**
+**Root cause:** A block rule against the DMZ gateway, added during the earlier change, prevented all external traffic from reaching hosts behind it. The `quick` keyword caused it to short-circuit the rest of the ruleset.
 
 ---
 
-## Help Desk Ticket 6: Port Scanning Analysis
+## Ticket 6: Services Outside the Approved Baseline
 
-**Scenario**:
+**Reported**
 ```
-Your local cybersecurity team is requesting to know what ports are open on DMZ_Server_2 to identify 
-services that may be running outside of the permitted services. Permitted services are 22/ssh, 
-135/msrpc, 3389/ms-wbt-server, and 8080/http-proxy.
+The cybersecurity team is requesting to know what ports are open on DMZ_Server_2 to identify
+services running outside the permitted services. Permitted services are 22/ssh, 135/msrpc,
+3389/ms-wbt-server, and 8080/http-proxy.
 ```
 
-**Troubleshooting Process**:
-1. Accessed DMZ_Server_2 directly via console. Ran ip addr to find its IP (10.10.20.2)
-2. Used the nmap -p- command to scan for open ports
-3. Compared scan results with the list of permitted services
-4. Identified multiple unauthorized open ports and services:
-   - Port 21/tcp (FTP)
-   - Port 23/tcp (Telnet)
-   - Port 80/tcp (HTTP)
-   - Port 139/tcp (NetBIOS-SSN)
-   - Port 145/tcp (UAAC)
-   - Port 666/tcp (Doom)
-   - Port 5483/tcp (Unknown)
-   - Port 9000/tcp (CSListener)
-   - Port 9001/tcp (tor-orport)
-   - Port 9999/tcp (abyss)
+**Tools used:** nmap, nslookup, netstat/ss, direct console access
 
-**Skills Demonstrated**:
-- **Vulnerability Assessment:** Conducted comprehensive nmap port scanning of critical infrastructure
-- **Compliance Auditing:** Compared discovered services against approved baseline (22/SSH, 135/MSRPC, 3389/RDP, 8080/HTTP-Proxy)
-- **Risk Analysis:** Identified 10+ unauthorized services including FTP, Telnet, HTTP, and suspicious ports (666/Doom, 9001/Tor)
-- **Security Reporting:** Generated detailed findings with specific remediation recommendations
-- **Hardening Guidance:** Provided actionable steps for service disable and host-based firewall implementation
+**Why these tools:** nmap enumerates all 65,535 TCP ports and identifies services. nslookup diagnosed the name resolution problem that blocked remote scanning. netstat and ss gave listening-port detail locally without elevated privileges.
 
-**Tools Used**: Nmap Security Scanner, Port Analysis, Vulnerability Assessment  
-**[View Security Assessment →](./Ticket-06-Vulnerability-Assessment/)**
+**Troubleshooting process**
+
+1. Attempted a remote scan by hostname and hit a resolution failure; confirmed with nslookup
+2. Took direct console access to DMZ_Server_2 and read its address with `ip addr`
+3. Ran a full port scan with `nmap -p-`
+4. Compared results against the approved service list
+
+**Findings — services outside the approved baseline**
+
+| Port | Service |
+|---|---|
+| 21/tcp | FTP |
+| 23/tcp | Telnet |
+| 80/tcp | HTTP |
+| 139/tcp | NetBIOS-SSN |
+| 145/tcp | UAAC |
+| 666/tcp | Doom |
+| 5483/tcp | Unknown |
+| 9000/tcp | CSListener |
+| 9001/tcp | Tor ORPort |
+| 9999/tcp | Abyss |
+
+**Risk:** Each unapproved service widens the attack surface. Telnet and FTP carry credentials in cleartext. A Tor ORPort listener on a DMZ host is a strong indicator the system warrants investigation rather than just remediation.
+
+**Recommendation**
+
+- Close the unapproved ports with a host-based firewall
+- Disable services not required for business operations; document and get approval for any that are
+- Investigate the host, given the nature of several of the listeners
+- Restrict firewall policy to approved ports only
+- Run scheduled port scans as part of routine monitoring
+- Establish a baseline configuration standard for DMZ hosts
+
+---
+
+## Skills demonstrated
+
+- Ticket handling from report through verified resolution
+- Root cause analysis and written documentation
+- Tool selection with stated rationale
+- Windows client and server support: DNS, DHCP, addressing, adapter configuration
+- Linux server troubleshooting and CLI administration
+- Routing: static routes, OSPF, NAT, loop diagnosis
+- Firewall rule analysis and change management
+- Packet capture analysis and port scanning
