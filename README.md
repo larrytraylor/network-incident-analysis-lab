@@ -62,6 +62,13 @@ updates to DMZ_Server_3, which acts as the DNS server. The resolution must be or
 
 **Root cause:** Incorrect Host (A) records in the wgu.edu forward lookup zone, introduced during the recent server work, resolved the domain to 10.10.20.2.
 
+**Recommendation**
+
+- Audit the remaining forward lookup zones on DMZ_Server_3 for records added during the same maintenance window
+- Determine whether the records were a configuration error or were planted, and treat 10.10.20.2 as suspect until that is settled
+- Restrict who can modify zone records and enable DNS change logging
+- Back up zone files before server maintenance so a bad change can be rolled back rather than reconstructed
+
 ---
 
 ## Ticket 2: Unauthorized FTP Service
@@ -87,17 +94,8 @@ asked for the host.
    <img width="468" height="235" alt="image" src="https://github.com/user-attachments/assets/c406599f-8f75-4a7c-94b5-983ec1c34f26" />
 
 5. Observed successful anonymous login to the server
-
-   <!-- drop screenshot here: anonymous login in the capture -->
-
 6. Identified navigation to common warez directories including "pub"
-
-   <!-- drop screenshot here: warez directories -->
-
 7. Found directory listing commands and evidence of file sharing activity
-
-   <!-- drop screenshot here: directory listing commands -->
-
 8. Confirmed the FTP server was explicitly labeled as providing "warez" content
 
 **Root cause:** An FTP service running on 10.10.20.2 in the DMZ, accepting anonymous logins and serving unauthorized content.
@@ -129,31 +127,28 @@ organization-wide.
 **Troubleshooting process**
 
 1. Used ping from Ubuntu_Server to test connectivity to loopback, local gateway, and internet addresses
-
-   <!-- drop screenshot here: ping tests from Ubuntu_Server -->
-
 2. Ran traceroute to 8.8.8.8 which revealed a routing loop between Router4 and Router5
 
    <img width="468" height="223" alt="image" src="https://github.com/user-attachments/assets/fe95550d-05cc-41e9-84c2-32a7af78fc48" />
 
 3. Accessed Router4 and examined its routing table with the `ip route` command
-
-   <!-- drop screenshot here: Router4 routing table before the fix -->
-
 4. Discovered Router4 had an incorrect default route pointing to 10.10.80.1 instead of 10.10.70.254
+
+   <img width="468" height="223" alt="Router4 routing table showing the bad default route, and the corrected static route" src="https://github.com/user-attachments/assets/f1119988-f591-43a8-a3d3-d43183566564" />
+
 5. Identified lack of NAT configuration on Router4 and Router5 for internet traffic
 6. Noted absence of dynamic routing protocols across the network
 7. Implemented NAT masquerade rules on Router4 and Router5
 
-   <!-- drop screenshot here: NAT configuration -->
+   <img width="468" height="223" alt="NAT configuration" src="https://github.com/user-attachments/assets/1867195c-a81b-45bb-82aa-e703ee886f56" />
 
 8. Configured OSPF on all routers to provide dynamic routing across the organization
 
-   <!-- drop screenshot here: OSPF configuration -->
+   <img width="468" height="223" alt="OSPF configuration" src="https://github.com/user-attachments/assets/a3a3d08e-b367-4bed-ba8a-c1805c31f5e8" />
 
 9. Verified connectivity with ping and traceroute from Ubuntu_Server to internet addresses
 
-   <!-- drop screenshot here: successful ping and traceroute after the fix -->
+   <img width="468" height="223" alt="successful ping and traceroute after the fix" src="https://github.com/user-attachments/assets/2eace98b-7ab1-491d-b845-e7dd92139ea7" />
 
 **Root cause:** Router4's default route pointed backward instead of forward to Router3, creating a routing loop. With no dynamic routing protocol, there was no path around the error.
 
@@ -177,12 +172,12 @@ when it is connected via ethernet cable to the office network.
 
 1. Confirmed the laptop was connected but showing "No Internet access"
 
-   <!-- drop screenshot here: network status showing No Internet access -->
+   <img width="624" height="313" alt="network status showing No Internet access" src="https://github.com/user-attachments/assets/74351818-c551-4b0e-8b62-444a7a542eda" />
 
 
 2. Ran the Windows Network Troubleshooter, which reported "Ethernet doesn't have a valid IP configuration"
 
-   <!-- drop screenshot here: troubleshooter reporting invalid IP configuration -->
+   <img width="624" height="313" alt="troubleshooter reporting invalid IP configuration" src="https://github.com/user-attachments/assets/166a59e6-88ee-4399-9f52-98dd4b7f92db" />
 
 
 3. Ran ipconfig and found an APIPA address (169.254.x.x) rather than an address from the user subnet
@@ -209,7 +204,8 @@ when it is connected via ethernet cable to the office network.
 
 **Recommendation**
 
-- Verify DHCP service health for the user subnet
+- Treat the static assignment as a temporary measure — it restores this one user, not the underlying DHCP path
+- Verify DHCP service health and scope availability for the user subnet, and check the relay if the scope lives on another segment
 - Document the addressing scheme with reserved static ranges
 - Add connectivity monitoring so DHCP failures surface before users report them
 
@@ -225,33 +221,42 @@ DMZ_Server_1. There is now no access to the server from any device outside its n
 
 **Tools used:** ping, nslookup, tracert, pfTop, pfSense shell, pfSense web interface
 
-**Why these tools:** ping and tracert establish whether and where the path breaks. nslookup resolved the hostname. pfTop showed live connections through the firewall. Shell access exposed the active ruleset, and the web interface made the change safe and reviewable.
+**Why these tools:** ping and tracert establish whether and where the path breaks. nslookup ruled out name resolution as the cause. pfTop showed live connections through the firewall. Shell access exposed the active ruleset, and the web interface made the change safe and reviewable.
 
 **Troubleshooting process**
 
-1. Attempted to ping DMZ_Server_1 and received "Request timed out"
+1. Pinged DMZ_Server_1 by hostname and got a name resolution failure; nslookup also failed against the configured DNS server, so the host was tested by IP from that point on
 
-   <!-- drop screenshot here: ping timing out -->
-
-
-2. Ran tracert and found traffic reaching the firewall and stopping after hop 4
-
-   <!-- drop screenshot here: tracert stopping after hop 4 -->
+   <!-- drop screenshot here: ping and nslookup failing on the hostname -->
 
 
-3. Opened the firewall console and used pfTop to examine current connections
-4. Read the active ruleset and found `block return out quick on em2 inet from any to 10.10.20.1` — a block against the DMZ gateway carrying the `quick` keyword, which stops evaluation before any later allow rules
+2. Pinged 10.10.20.3 directly and received "Request timed out" on all four attempts — 100% packet loss
+3. Ran tracert to 10.10.20.3 and found traffic reaching hops 1 through 4 (10.10.40.254, 10.10.10.254, 10.10.50.254, 10.10.60.254) and timing out after the firewall
 
-   <!-- drop screenshot here: pfTop output and the block rule in the ruleset -->
-
-
-5. Confirmed the rule in the web interface and deleted it
-6. Verified connectivity to DMZ_Server_1 was restored
-
-   <!-- drop screenshot here: connectivity restored -->
+   <!-- drop screenshot here: ping timing out and tracert stopping after hop 4 -->
 
 
-**Root cause:** A block rule against the DMZ gateway, added during the earlier change, prevented all external traffic from reaching hosts behind it. The `quick` keyword caused it to short-circuit the rest of the ruleset.
+4. Opened the firewall console and used pfTop to examine current connections
+5. Read the active ruleset and found `block return out quick on em2 inet from any to 10.10.20.1` — a block against the DMZ gateway carrying the `quick` keyword, which stops evaluation before any later allow rules
+
+   <!-- drop screenshot here: the DMZ ruleset with the block rule against 10.10.20.1 -->
+
+
+6. Confirmed the rule in the web interface and deleted it
+
+   <!-- drop screenshot here: DMZ ruleset after removing the block rule -->
+
+
+7. Verified connectivity to DMZ_Server_1 was restored
+
+**Root cause:** A block rule against the DMZ gateway, added during the earlier change, prevented external traffic from reaching hosts behind it. The `quick` keyword caused it to short-circuit the rest of the ruleset.
+
+**Recommendation**
+
+- Replace broad block rules with specific allow rules scoped to the service that actually needed opening
+- Require a peer review and a written rollback step before firewall changes reach production
+- Snapshot the ruleset before each change so a bad rule can be reverted rather than hunted down
+- Add descriptions to firewall rules so the intent behind each one is readable later
 
 ---
 
@@ -271,12 +276,9 @@ services running outside the permitted services. Permitted services are 22/ssh, 
 **Troubleshooting process**
 
 1. Accessed DMZ_Server_2 directly via console and ran `ip addr` to find its IP (10.10.20.2)
-
-   <!-- drop screenshot here: ip addr output -->
-
 2. Used the `nmap -p-` command to scan for open ports
 
-   <!-- drop screenshot here: nmap full port scan results -->
+   <!-- drop screenshot here: ip addr output followed by the full nmap port scan results -->
 
 3. Compared scan results with the list of permitted services
 4. Identified multiple unauthorized open ports and services
@@ -291,7 +293,7 @@ services running outside the permitted services. Permitted services are 22/ssh, 
 | 139/tcp | NetBIOS-SSN |
 | 145/tcp | UAAC |
 | 666/tcp | Doom |
-| 5483/tcp | Unknown |
+| 5489/tcp | Unknown |
 | 9000/tcp | CSListener |
 | 9001/tcp | Tor ORPort |
 | 9999/tcp | Abyss |
@@ -309,6 +311,18 @@ services running outside the permitted services. Permitted services are 22/ssh, 
 
 ---
 
+## Cross-ticket observation
+
+Three tickets arrived separately but point at the same host, 10.10.20.2 (DMZ_Server_2):
+
+- **Ticket 1** — the poisoned wgu.edu A records resolved to 10.10.20.2, so redirected users were being sent to this host
+- **Ticket 2** — the unauthorized FTP service in the packet capture is running on 10.10.20.2
+- **Ticket 6** — the port scan of 10.10.20.2 shows FTP listening on 21/tcp alongside a Tor ORPort listener and eight other unapproved services
+
+Handled as three unrelated tickets, each gets a local fix. Read together, they describe one compromised DMZ host being used to redirect internal users and serve unauthorized content. That reframes the response from remediation to incident investigation.
+
+---
+
 ## Skills demonstrated
 
 - Ticket handling from report through verified resolution
@@ -319,3 +333,4 @@ services running outside the permitted services. Permitted services are 22/ssh, 
 - Routing: static routes, OSPF, NAT, loop diagnosis
 - Firewall rule analysis and change management
 - Packet capture analysis and port scanning
+- Correlating findings across separate tickets to identify a common root
