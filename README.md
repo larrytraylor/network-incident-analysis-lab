@@ -1,4 +1,4 @@
-<img width="960" height="540" alt="Network Support Ticket Casebook" src="https://github.com/user-attachments/assets/86f06080-31b9-48c9-91ee-86cfbc461ef9" />
+<img width="960" height="540" alt="Network Support Ticket Casebook" src="https://github.com/user-attachments/assets/cd4001b1-4871-4068-a943-e6c2d8f93e80" />
 
 # Network Support Ticket Casebook
 
