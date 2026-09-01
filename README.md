@@ -1,8 +1,8 @@
-<img width="960" height="540" alt="Help Desk Ticket Lab" src="https://github.com/user-attachments/assets/86f06080-31b9-48c9-91ee-86cfbc461ef9" />
+<img width="960" height="540" alt="Network Support Ticket Casebook" src="https://github.com/user-attachments/assets/86f06080-31b9-48c9-91ee-86cfbc461ef9" />
 
-# Help Desk Ticket Lab
+# Network Support Ticket Casebook
 
-Six help desk tickets worked end to end in a virtualized enterprise environment. Each ticket documents the reported problem, the tools chosen and why, the troubleshooting steps taken, the root cause, and the verified resolution.
+Six network support tickets worked end to end in a virtualized enterprise environment. Each ticket documents the reported problem, the tools chosen and why, the troubleshooting steps taken, the root cause, and the verified resolution.
 
 ## Environment
 
