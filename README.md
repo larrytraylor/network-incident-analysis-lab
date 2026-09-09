@@ -1,6 +1,6 @@
-<img width="960" height="540" alt="Network Support Ticket Casebook" src="https://github.com/user-attachments/assets/cd4001b1-4871-4068-a943-e6c2d8f93e80" />
+<img width="960" height="540" alt="Tier 1-2 Technical Support Ticket Lab" src="https://github.com/user-attachments/assets/d41609fc-d6d6-4b94-84ed-5257c00af8cf" />
 
-# Network Support Ticket Casebook
+# Tier 1-2 Technical Support Ticket Lab
 
 Six network support tickets worked end to end in a virtualized enterprise environment. Each ticket documents the reported problem, the tools chosen and why, the troubleshooting steps taken, the root cause, and the verified resolution.
 
