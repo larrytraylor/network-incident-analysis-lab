@@ -1,6 +1,6 @@
-<img width="960" height="540" alt="Tier 1-2 Technical Support Ticket Lab" src="https://github.com/user-attachments/assets/d41609fc-d6d6-4b94-84ed-5257c00af8cf" />
+<img width="960" height="540" alt="Network Troubleshooting & Incident Analysis Lab" src="https://github.com/user-attachments/assets/d41609fc-d6d6-4b94-84ed-5257c00af8cf" />
 
-# Tier 1-2 Technical Support Ticket Lab
+# Network Troubleshooting & Incident Analysis Lab
 
 Six network support tickets worked end to end in a virtualized enterprise environment. Each ticket documents the reported problem, the tools chosen and why, the troubleshooting steps taken, the root cause, and the verified resolution. Screenshots from the lab appear at the step they prove.
 
