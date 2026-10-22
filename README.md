@@ -2,25 +2,25 @@
 
 # Tier 1-2 Technical Support Ticket Lab
 
-Six network support tickets worked end to end in a virtualized enterprise environment. Each ticket documents the reported problem, the tools chosen and why, the troubleshooting steps taken, the root cause, and the verified resolution.
+Six network support tickets worked end to end in a virtualized enterprise environment. Each ticket documents the reported problem, the tools chosen and why, the troubleshooting steps taken, the root cause, and the verified resolution. Screenshots from the lab appear at the step they prove.
 
 ## Environment
 
 - **Servers:** Windows Server 2019 (DNS / domain controller), Ubuntu Linux servers
 - **Endpoints:** Windows 10 workstations
-- **Network:** pfSense firewall, VyOS routers, DMZ architecture
-- **Tools:** DNS Manager, Wireshark, nmap, pfTop, VyOS CLI, PuTTY, TightVNC, Windows Network Diagnostics, ipconfig, ping, traceroute/tracert, nslookup, netstat/ss
+- **Network:** OPNsense firewall, VyOS routers, DMZ architecture
+- **Tools:** DNS Manager, Wireshark, nmap, pfTop, VyOS CLI, PuTTY, TightVNC, Windows Network Diagnostics, ipconfig, ping, traceroute/tracert, nslookup
 
 ## Tickets
 
 | # | Issue | Root cause |
 |---|---|---|
-| 1 | Users redirected to an unexpected site | Incorrect DNS A records |
-| 2 | Unauthorized FTP service on the network | Anonymous FTP server in the DMZ |
-| 3 | Linux server cannot reach any network | Routing loop from a bad default route |
-| 4 | Workstation has no network access | DHCP failure causing APIPA fallback |
-| 5 | DMZ server unreachable after a firewall change | Overly broad block rule |
-| 6 | Services running outside the approved baseline | 10 unauthorized listening ports |
+| 1 | [Users redirected to an unexpected site](#ticket-1-dns-redirection) | Incorrect DNS A records |
+| 2 | [Unauthorized FTP service on the network](#ticket-2-unauthorized-ftp-service) | Anonymous FTP server in the DMZ |
+| 3 | [Linux server cannot reach any network](#ticket-3-linux-server-cannot-reach-any-network) | Routing loop from a bad default route |
+| 4 | [Workstation has no network access](#ticket-4-workstation-has-no-network-access) | DHCP failure causing APIPA fallback |
+| 5 | [DMZ server unreachable after a firewall change](#ticket-5-dmz-server-unreachable-after-a-firewall-change) | Overly broad block rule |
+| 6 | [Services running outside the approved baseline](#ticket-6-services-outside-the-approved-baseline) | 10 unauthorized listening ports |
 
 ---
 
@@ -41,22 +41,30 @@ updates to DMZ_Server_3, which acts as the DNS server. The resolution must be or
 
 1. Verified the issue by attempting to access www.wgu.edu, which resulted in a "Server Not Found" error
 
-   <img width="462" height="278" alt="image" src="https://github.com/user-attachments/assets/aaa3909f-c4a2-49f8-9bdd-5850229fa022" />
+   <img width="720" alt="Firefox showing Server Not Found for www.wgu.edu" src="images/t1-1.jpg" />
+
+   *Firefox on Windows_Laptop_1 cannot load www.wgu.edu.*
 
 2. Accessed the DNS server on DMZ_Server_3 using TightVNC Viewer to examine its configuration
-
-   <img width="468" height="309" alt="image" src="https://github.com/user-attachments/assets/3091b983-61e9-40ca-9b88-f70b230ac3a5" />
-
 3. In DNS Manager, examined the forward lookup zone for wgu.edu and discovered both the root domain (wgu.edu) and the www subdomain were configured with Host (A) records pointing to 10.10.20.2
+
+   <img width="720" alt="DNS Manager showing wgu.edu and www A records pointing to 10.10.20.2" src="images/t1-2.jpg" />
+
+   *DNS Manager on DMZ_Server_3: the wgu.edu zone's parent and www Host (A) records both point to 10.10.20.2.*
+
 4. This incorrect IP address (10.10.20.2) explained why users were being redirected to a suspicious site — the DNS server was resolving wgu.edu to an IP address that hosted potentially malicious content
 5. To resolve the issue, deleted the entire forward lookup zone for wgu.edu
 
-   <img width="468" height="308" alt="image" src="https://github.com/user-attachments/assets/d1b720f3-c65d-4686-a0e1-57155d672a56" />
+   <img width="720" alt="DNS Manager prompt to delete the wgu.edu zone" src="images/t1-3.jpg" />
+
+   *Deleting the wgu.edu forward lookup zone from DMZ_Server_3.*
 
 6. After deletion, verified that users would now resolve wgu.edu via the organization's upstream DNS providers, which have the correct records
 7. Verified the resolution by testing access to www.wgu.edu, which now successfully loaded the legitimate WGU website
 
-   <img width="468" height="355" alt="image" src="https://github.com/user-attachments/assets/fb6e7b3f-7ae2-4271-abc2-6a788ff668d6" />
+   <img width="720" alt="www.wgu.edu loading the legitimate WGU site" src="images/t1-4.jpg" />
+
+   *www.wgu.edu now loads the legitimate WGU site.*
 
 8. Since DNS changes propagate throughout the organization automatically, this resolution is organization-wide as required
 
@@ -90,13 +98,14 @@ asked for the host.
 2. Applied the display filter `ftp or ftp-data` to isolate only FTP-related traffic
 3. Examined the filtered packets to identify FTP server communications
 4. Found evidence of an FTP server at IP address 10.10.20.2 advertising itself as a "warez FTP service"
-
-   <img width="468" height="235" alt="image" src="https://github.com/user-attachments/assets/c406599f-8f75-4a7c-94b5-983ec1c34f26" />
-
 5. Observed successful anonymous login to the server
 6. Identified navigation to common warez directories including "pub"
 7. Found directory listing commands and evidence of file sharing activity
 8. Confirmed the FTP server was explicitly labeled as providing "warez" content
+
+   <img width="720" alt="Wireshark filtered on FTP showing the warez FTP server at 10.10.20.2" src="images/t2-1.jpg" />
+
+   *Wireshark filtered on `ftp or ftp-data`: 10.10.20.2 answers "220 Welcome to warez FTP service", accepts `USER anonymous` ("230 Login successful"), and the client changes into `pub` and `warez` and lists directories.*
 
 **Root cause:** An FTP service running on 10.10.20.2 in the DMZ, accepting anonymous logins and serving unauthorized content.
 
@@ -129,26 +138,44 @@ organization-wide.
 1. Used ping from Ubuntu_Server to test connectivity to loopback, local gateway, and internet addresses
 2. Ran traceroute to 8.8.8.8 which revealed a routing loop between Router4 and Router5
 
-   <img width="468" height="223" alt="image" src="https://github.com/user-attachments/assets/fe95550d-05cc-41e9-84c2-32a7af78fc48" />
+   <img width="720" alt="traceroute to 8.8.8.8 looping between 10.10.80.254 and 10.10.80.1" src="images/t3-1.jpg" />
+
+   *traceroute from Ubuntu_Server bounces between 10.10.80.254 and 10.10.80.1 — a routing loop.*
 
 3. Accessed Router4 and examined its routing table with the `ip route` command
 4. Discovered Router4 had an incorrect default route pointing to 10.10.80.1 instead of 10.10.70.254
 
-   <img width="468" height="223" alt="Router4 routing table showing the bad default route, and the corrected static route" src="https://github.com/user-attachments/assets/f1119988-f591-43a8-a3d3-d43183566564" />
+   <img width="720" alt="Router4 routing table with the default route via 10.10.80.1 and the static route change" src="images/t3-2.jpg" />
+
+   *Router4 `show ip route`: the default route points back to 10.10.80.1. The static default route is then deleted and replaced.*
+
+   <img width="720" alt="traceroute after the route change still failing past the first hop" src="images/t3-3.jpg" />
+
+   *Re-running traceroute after the change: the loop is gone, but traffic still stops after the first hop.*
 
 5. Identified lack of NAT configuration on Router4 and Router5 for internet traffic
 6. Noted absence of dynamic routing protocols across the network
 7. Implemented NAT masquerade rules on Router4 and Router5
 
-   <img width="468" height="223" alt="NAT configuration" src="https://github.com/user-attachments/assets/1867195c-a81b-45bb-82aa-e703ee886f56" />
+   <img width="720" alt="Router5 default route and NAT masquerade configuration" src="images/t3-4.jpg" />
+
+   *Router5: default route set to 10.10.80.254 and a NAT masquerade rule added for 10.10.90.0/24.*
+
+   <img width="720" alt="traceroute reaching 10.10.80.254 then host unreachable" src="images/t3-5.jpg" />
+
+   *Progress check: traffic now reaches 10.10.80.254 but returns host unreachable (`!H`) — the routers still need a shared view of the network.*
 
 8. Configured OSPF on all routers to provide dynamic routing across the organization
 
-   <img width="468" height="223" alt="OSPF configuration" src="https://github.com/user-attachments/assets/a3a3d08e-b367-4bed-ba8a-c1805c31f5e8" />
+   <img width="720" alt="Router3 OSPF configuration, successful ping to 8.8.8.8, and OSPF neighbors" src="images/t3-6.jpg" />
+
+   *Router3: OSPF networks added with `default-information originate always`, a ping to 8.8.8.8 succeeds, and `show ip ospf neighbor` lists both neighbors as Full.*
 
 9. Verified connectivity with ping and traceroute from Ubuntu_Server to internet addresses
 
-   <img width="468" height="223" alt="successful ping and traceroute after the fix" src="https://github.com/user-attachments/assets/2eace98b-7ab1-491d-b845-e7dd92139ea7" />
+   <img width="720" alt="final traceroute from Ubuntu_Server reaching dns.google" src="images/t3-7.jpg" />
+
+   *Final traceroute from Ubuntu_Server reaches dns.google (8.8.8.8).*
 
 **Root cause:** Router4's default route pointed backward instead of forward to Router3, creating a routing loop. With no dynamic routing protocol, there was no path around the error.
 
@@ -172,18 +199,21 @@ when it is connected via ethernet cable to the office network.
 
 1. Confirmed the laptop was connected but showing "No Internet access"
 
-   <img width="624" height="313" alt="network status showing No Internet access" src="https://github.com/user-attachments/assets/74351818-c551-4b0e-8b62-444a7a542eda" />
+   <img width="720" alt="Windows network status showing No Internet access" src="images/t4-1.jpg" />
 
+   *Network status on Windows_Laptop_1: connected, but No Internet access.*
 
 2. Ran the Windows Network Troubleshooter, which reported "Ethernet doesn't have a valid IP configuration"
 
-   <img width="624" height="313" alt="troubleshooter reporting invalid IP configuration" src="https://github.com/user-attachments/assets/166a59e6-88ee-4399-9f52-98dd4b7f92db" />
+   <img width="720" alt="Troubleshooter reporting Ethernet does not have a valid IP configuration" src="images/t4-2.jpg" />
 
+   *The troubleshooter reports "Ethernet" doesn't have a valid IP configuration — not fixed.*
 
 3. Ran ipconfig and found an APIPA address (169.254.x.x) rather than an address from the user subnet
 
-   <!-- drop screenshot here: ipconfig showing the 169.254.x.x APIPA address -->
+   <img width="720" alt="ipconfig showing APIPA address 169.254.144.242" src="images/t4-3.jpg" />
 
+   *`ipconfig` shows the APIPA address 169.254.144.242 with no default gateway.*
 
 4. Checked the network diagram and a working workstation on the same subnet to confirm the correct scheme
 5. Switched the adapter from DHCP to manual and set:
@@ -192,13 +222,15 @@ when it is connected via ethernet cable to the office network.
    - Default gateway: 10.10.40.254
    - DNS server: 10.10.20.3
 
-   <!-- drop screenshot here: manual IP configuration applied -->
+   <img width="720" alt="Manual IP settings applied to the adapter" src="images/t4-4.jpg" />
 
+   *IP settings after the change: Manual, 10.10.40.4/24, gateway 10.10.40.254, DNS 10.10.20.3.*
 
 6. Verified internet and internal resource access were restored
 
-   <!-- drop screenshot here: internet access restored -->
+   <img width="720" alt="Browser loading google.com after the fix" src="images/t4-5.jpg" />
 
+   *The browser loads google.com — access restored.*
 
 **Root cause:** The workstation could not obtain a lease from DHCP and fell back to an APIPA address, which provides no connectivity beyond the local link. Possible causes include a DHCP service problem, a firewall blocking DHCP, or an adapter issue.
 
@@ -219,7 +251,7 @@ A coworker states that she worked on a ticket to allow access through the firewa
 DMZ_Server_1. There is now no access to the server from any device outside its network.
 ```
 
-**Tools used:** ping, nslookup, tracert, pfTop, pfSense shell, pfSense web interface
+**Tools used:** ping, nslookup, tracert, pfTop, OPNsense shell, OPNsense web interface
 
 **Why these tools:** ping and tracert establish whether and where the path breaks. nslookup ruled out name resolution as the cause. pfTop showed live connections through the firewall. Shell access exposed the active ruleset, and the web interface made the change safe and reviewable.
 
@@ -227,25 +259,32 @@ DMZ_Server_1. There is now no access to the server from any device outside its n
 
 1. Pinged DMZ_Server_1 by hostname and got a name resolution failure; nslookup also failed against the configured DNS server, so the host was tested by IP from that point on
 
-   <!-- drop screenshot here: ping and nslookup failing on the hostname -->
+   <img width="720" alt="ping and nslookup failing for DMZ_Server_1" src="images/t5-1.jpg" />
 
+   *`ping dmz_server_1` cannot find the host, and `nslookup DMZ_Server_1` returns "Server failed".*
 
 2. Pinged 10.10.20.3 directly and received "Request timed out" on all four attempts — 100% packet loss
 3. Ran tracert to 10.10.20.3 and found traffic reaching hops 1 through 4 (10.10.40.254, 10.10.10.254, 10.10.50.254, 10.10.60.254) and timing out after the firewall
 
-   <!-- drop screenshot here: ping timing out and tracert stopping after hop 4 -->
+   <img width="720" alt="ping timing out and tracert stopping after hop 4" src="images/t5-2.jpg" />
 
+   *`ping 10.10.20.3` times out with 100% loss, and `tracert` stops after hop 4 (10.10.60.254).*
 
 4. Opened the firewall console and used pfTop to examine current connections
 5. Read the active ruleset and found `block return out quick on em2 inet from any to 10.10.20.1` — a block against the DMZ gateway carrying the `quick` keyword, which stops evaluation before any later allow rules
-
-   <!-- drop screenshot here: the DMZ ruleset with the block rule against 10.10.20.1 -->
-
-
 6. Confirmed the rule in the web interface and deleted it
 
-   <!-- drop screenshot here: DMZ ruleset after removing the block rule -->
+   <img width="720" alt="OPNsense web interface login" src="images/t5-3.jpg" />
 
+   *Signing in to the OPNsense web interface at 10.10.60.254.*
+
+   <img width="720" alt="OPNsense DMZ rules with a block rule to 10.10.20.1" src="images/t5-4.jpg" />
+
+   *Firewall: Rules: DMZ — a block rule with destination 10.10.20.1 sits above the pass rules.*
+
+   <img width="720" alt="OPNsense DMZ rules after the block rule was deleted" src="images/t5-5.jpg" />
+
+   *The DMZ ruleset after the block rule was deleted, ready to apply.*
 
 7. Verified connectivity to DMZ_Server_1 was restored
 
@@ -278,7 +317,9 @@ services running outside the permitted services. Permitted services are 22/ssh, 
 1. Accessed DMZ_Server_2 directly via console and ran `ip addr` to find its IP (10.10.20.2)
 2. Used the `nmap -p-` command to scan for open ports
 
-   <!-- drop screenshot here: ip addr output followed by the full nmap port scan results -->
+   <img width="720" alt="ip addr output and full nmap port scan of 10.10.20.2" src="images/t6-1.jpg" />
+
+   *`ip addr` confirms 10.10.20.2, and `nmap -p- 10.10.20.2` lists every open port.*
 
 3. Compared scan results with the list of permitted services
 4. Identified multiple unauthorized open ports and services
